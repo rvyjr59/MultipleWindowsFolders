@@ -5,8 +5,8 @@ Open a list of folders as **tabs in a single File Explorer window** on Windows 1
 ## Quick Start
 
 1. Open `OpenFoldersAsTabs.py` and edit the folder list at the top
-2. Double-click **`OpenFoldersAsTabs_Python.bat`**
-3. Don't touch your keyboard or mouse until the Explorer window finishes loading all tabs (~6 sec per tab)
+2. Right-click **`OpenFoldersAsTabs_Python.ps1`** → **Run with PowerShell**
+3. Don't touch your keyboard or mouse until the Explorer window finishes loading all tabs (~9 sec per tab)
 
 That's it. The console window closes automatically when done.
 
@@ -15,7 +15,7 @@ That's it. The console window closes automatically when done.
 | File | What it does |
 |------|-------------|
 | `OpenFoldersAsTabs.py` | Main script. Opens folders as tabs in one Explorer window. |
-| `OpenFoldersAsTabs_Python.bat` | Double-click launcher for the `.py`. |
+| `OpenFoldersAsTabs_Python.ps1` | Launcher for the `.py`. Finds a working interpreter and checks `pywin32` before running. |
 | `archive-ps1/` | Archived PowerShell approach (`.ps1` scripts and their `.bat` launchers). |
 
 ## Editing the Folder List
@@ -37,10 +37,29 @@ Paths use `%USERPROFILE%` via `os.path.expandvars` so the script is portable acr
 ## Requirements
 
 - **Windows 11** — Explorer tabs are a Windows 11 feature. On Windows 10 you'll get separate windows instead.
-- **Python 3** with the `pywin32` package:
-  ```
-  pip install pywin32
-  ```
+- **Python 3** with the `pywin32` package.
+
+Install `pywin32` into the **same interpreter the launcher reports**, using its full path:
+
+```powershell
+& 'C:\Path\To\python.exe' -m pip install pywin32
+```
+
+A bare `pip install pywin32` can land in a different interpreter than the one that actually runs the script — a common cause of "it says it's installed but the import still fails."
+
+## How the Launcher Picks Python
+
+The launcher does **not** trust PATH order. The Microsoft Store stub at `%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe` **blocks forever waiting on input** instead of failing, so when it wins PATH order the script appears to do nothing at all — no error, no window.
+
+Search order:
+
+1. Every `python` on PATH, with anything under `\WindowsApps\` filtered out
+2. The **`py -3` launcher**, which never resolves to the stub
+3. Known install locations — `C:\Python3xx`, `%LOCALAPPDATA%\Programs\Python\Python3xx`, `%ProgramFiles%\Python3xx`
+
+Install locations legitimately differ between machines (a drive-root install vs. a winget per-user install), so the launcher probes both rather than requiring them to match.
+
+It then verifies the `pywin32` imports **before** launching and, on failure, prints the exact `pip install` command for that specific interpreter. If no real interpreter exists, it exits with an install command instead of hanging.
 
 ## How It Works
 
@@ -64,12 +83,12 @@ Focus is enforced between each step using Win32 `AttachThreadInput` + `SetForegr
 | Problem | Fix |
 |---------|-----|
 | A tab opens but shows "Home" instead of the folder | Increase the `time.sleep` delays in the script. The 3-second pauses after Ctrl+T and Enter are the most important ones. |
+| Tabs land on "Home" only *sometimes*, for some folders | Not a timing problem — the target is likely a cloud-only OneDrive placeholder Explorer can't resolve in time. Set the folder to "Always keep on this device". |
 | The script opens separate windows instead of tabs | Make sure you're on Windows 11 with Explorer tabs enabled (it's on by default). |
-| Nothing happens when double-clicking the `.bat` | Right-click → Run as administrator, or run the Python command manually. |
-| Python errors on import | Run `pip install pywin32` first. |
+| Nothing happens when running the launcher | The launcher reports which interpreter it picked and why it stopped. If it exits silently, check the execution policy: `Get-ExecutionPolicy -Scope CurrentUser` should be `RemoteSigned`. |
+| Python errors on import | Install `pywin32` into the interpreter the launcher names, by full path (see Requirements). |
 
 ## Tips
 
-- **Pin the `.bat` to your taskbar** or Start menu for one-click access
-- **Add more folder lists**: duplicate the `.py` and `.bat` with different names and folder lists for different workflows (e.g., `WorkFolders.bat`, `ProjectFolders.bat`)
+- **Add more folder lists**: duplicate the `.py` and `.ps1` with different names and folder lists for different workflows (e.g., `WorkFolders.ps1`, `ProjectFolders.ps1`)
 - **Don't interact** with the keyboard or mouse while the script runs — it uses simulated keystrokes that need Explorer to stay in focus
