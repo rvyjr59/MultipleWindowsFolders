@@ -29,7 +29,7 @@ FOLDERS = [
     os.path.join(_home, "OneDrive", "ObsidianVault"),
     os.path.join(_home, "OneDrive", "ObsidianVault", "Vault"),
     os.path.join(_home, "OneDrive", "ObsidianVault", "Projects"),
-    # Add more folder paths here, one per line
+    os.path.join(_home, "OneDrive", "ObsidianVault", "Powershell"),
 ]
 # -------------------------
 
@@ -118,10 +118,10 @@ def main():
 
     if target_hwnd is None:
         return
-    time.sleep(3)
+    time.sleep(4)
 
     force_foreground(target_hwnd)
-    time.sleep(1)
+    time.sleep(1.5)
 
     # Open remaining folders as tabs
     for folder in valid_folders[1:]:
@@ -130,31 +130,32 @@ def main():
 
         # Ensure focus
         force_foreground(target_hwnd)
-        time.sleep(0.5)
+        time.sleep(1)
 
         # Ctrl+T for new tab
         shell.SendKeys("^t")
-        time.sleep(3)
+        time.sleep(4)
 
-        # Re-focus
+        # Re-focus after new tab opens
+        target_hwnd = get_explorer_windows()[0] if get_explorer_windows() else target_hwnd
         force_foreground(target_hwnd)
-        time.sleep(0.5)
+        time.sleep(1)
 
         # Alt+D to focus address bar (more reliable than Ctrl+L)
         shell.SendKeys("%d")
-        time.sleep(0.8)
+        time.sleep(1.2)
 
         # Paste
         shell.SendKeys("^v")
-        time.sleep(0.8)
+        time.sleep(1.2)
 
         # Re-focus before Enter
         force_foreground(target_hwnd)
-        time.sleep(0.2)
+        time.sleep(0.5)
 
         # Navigate
         shell.SendKeys("{ENTER}")
-        time.sleep(3)
+        time.sleep(4)
 
     # Restore clipboard
     if saved_clip is not None:
